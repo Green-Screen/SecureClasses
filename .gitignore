@@ -1,0 +1,11 @@
+# Project place file
+/SecureClasses.rbxlx
+
+# Roblox Studio lock files
+/*.rbxlx.lock
+/*.rbxl.lock
+
+sourcemap.json
+
+# old
+tmp2.luau

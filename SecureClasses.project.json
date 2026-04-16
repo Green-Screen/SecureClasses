@@ -1,0 +1,20 @@
+{
+  "name": "SecureClasses",
+  "emitLegacyScripts": false,
+  
+  
+  "tree": {
+    "$ignoreUnknownInstances": true,
+    "$className": "DataModel",
+
+    "ServerScriptService": {
+      "SecureClasses": {
+        "$className": "Folder",
+        
+          "SecureClasses": {
+          "$path": "src"
+        }
+      }
+    }
+  }
+}
