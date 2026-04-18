@@ -73,7 +73,7 @@ local function SmartClose(self: { [any]: any }, Nuke: boolean)
 	end
 
 	table.clear(self)
-    if EasyType(getmetatable(self) == "table" or EasyType(getmetatable(self)) == "userdata") then
+    if EasyType(getmetatable(self) == "table") then
         setmetatable(self, nil)
     end
 	return nil
