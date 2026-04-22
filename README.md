@@ -1,6 +1,9 @@
-# Secure Classes
+<div align="center">
+    <h1>Secure Classes</h1>
 
-## Current Version: V 1.0.0
+</div>
+
+## Current Version: V 1.1.0
 
 Secure Classes is a metatable and userdata class wrapper ment to properly wrap all objects to properly protect them
 and maintain a clean and consice structure that is up to modern standards
@@ -22,5 +25,6 @@ and maintain a clean and consice structure that is up to modern standards
 
 -   Initial
 -   Support for Metatables and Userdata
+-   Documentation created with `Moonwave`
 
 **_This module is still in testing and is not yet ready for production usage_**

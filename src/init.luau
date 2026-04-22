@@ -1,4 +1,4 @@
--- SecureClasses V 1.0.0
+-- SecureClasses V 1.1.0
 -- @Patriots8800
 
 --!strict
@@ -122,7 +122,7 @@ local Metamethods = function<T, MT, MM>(self: TransferMetadata<T, MT>, Metametho
 		if index == "Destroy" then
             return NestedClose
 		end
-		return MD.Metadata[index]
+		return (MD.Metadata::{[any]:any})[index]
 	end
 
 	Tmp.__newindex = function()
@@ -193,8 +193,8 @@ export type MetaMethods<T> ={
 type TransferMetadata<T, MT> = setmetatable<{
 	WriteMetamethods: <MM>(self: TransferMetadata<T, MT>, Metamethods: MetaMethods<MM>, Flag: string) -> WrappedMetatable<T, MT>
 }, {
-	Table: { [any]: any },
-	Metadata: { [any]: any },
+	Table: T,
+	Metadata: MT,
 	IsMetatable: boolean,
 }>
 
@@ -250,3 +250,145 @@ return {
     
 
 --]]
+
+----------------------------------------------------------------------------------------------
+
+--					 		                                    [[ Documentation: ]]
+
+
+--- @class SecuredMetatable
+--- A lightweight metatable/Userdata wrapper built for security and maintain proper code edicate among custom user objects and instances with built in protections and helping features while still providing raw metatable support.
+
+--					Types
+
+--[=[
+	@type SecuredMetatable<T,MT, MM> (T&MT&MM)
+	@within SecuredMetatable
+	:::info
+	The `Secured Metatable` class is a ready only wrapper that enacts a read only function apart of the `__newindex` metamethod, a sandboxed `__index` table, and the `__metatable` flag being enacted and is only destroyable by the `:Destroy` function.
+	:::
+]=]
+
+--[=[
+	@interface MetaMethods<T> -- Strongly typed metamethods
+	@within SecuredMetatable
+
+	.__index ((self:T, index:(keyof<T> | any)) -> () | {[any]:any} )?, -- self[keyof<T>] Indexes the table attached (Not the actual Metatable)
+	.__newindex ((self:T, index:any, value:any) -> () | {[any]:any})?, -- self[keyof<T>] = V Adds new value (locked for read only)
+	.__call ((self: T, ...any) -> any)? -- self() function call
+	.__concat (<V>(self: T, value: V) -> T & V)?, -- self..value Concatenation (combine)
+	.__unm ((self: T) -> T)?, -- -self Unary  (inverse)
+	.__iter (typeof(next))?, -- Generalized iteration for K, V in self do --task-- end (Type of next as default)
+
+	.__add ((self: T, value: number) -> number)?, -- self+value Addition (Adds a number)
+	.__sub ((self: T, value: number) -> number)?, -- self-value Subtraction (Subtracts a number)
+	.__mul ((self: T, value: number) -> number)?, -- self*value Multiplication (Multiples a number)
+	.__div ((self: T, value: number) -> number)?, -- self/value Division (Divides a number)
+	.__idiv ((self: T, value: number) -> number)?, -- self//value Floor division (Floor divides a number)
+	.__mod ((self: T, value: number) -> number)?, -- self%value Modulus (Modulo's by a number)
+	.__pow ((self: T, value: number) -> number)?, -- self^value Exponentiation (Exponentiates a number)
+	.__tostring ((self: T) -> string)?, -- tostring(self) -> printable string ()
+	.__len ((self: T) -> number)?, -- #self Array length (length)
+
+	.__eq ((self: T, value: any) -> boolean)?, -- self==value Equality operator (compares a value to be equal)
+
+	.__lt ((self: T, value: any) -> boolean)?, -- self<value Less than operator (compares a value to be less than)
+	.__le ((self: T, value: any) -> boolean)?, -- self<=value Less than or equal operator (compares a value to be less than or equal)
+
+	.__mode ("K" | "V" | "KV")?, -- Sets the garbage collection rule of the table
+	.__metatable string -- Locks metatable 
+
+	.__destroy ((self: T, OptionalBooleanArgument:boolean) -> ())? -- custom function to be assigned when 'Destroy is called'
+	
+	
+	:::danger Forbidden
+	Metamethods: `__index`, `__newindex`, and `__metatable` are custom and constant and cannot be written or read from.
+	:::
+
+	:::caution Comparisons
+	`__eq`, `__lt`, `__le` Requires two values with the same metamethod function and basic type (table/userdata/etc.); does not work with a table and another random table, or with a userdata and a table.
+	:::
+	
+	:::info New Metamethod
+	`__destroy` can be assigned to be ran before the auto cleanup of `:Destroy()`.
+	:::
+
+]=]
+
+--[=[
+	@within SecuredMetatable
+
+	@function NewMetatable<T, MT>
+	
+	@param Table T -- The front table template and inital values
+	@param Metatable MT -- The metatable template and inital values
+
+	@return TransferTable<T, MT> -- A read-only wrapped metatable
+]=]
+
+--[=[
+	@within SecuredMetatable
+
+	@function NewUserdata<T, MT>
+	
+	@param Table T -- The front table template and inital values
+	@param Metatable MT -- The metatable template and inital values
+
+	@return TransferTable<T, MT> -- A read-only wrapped Userdata
+
+	:::caution Read-Only
+	`Userdata's` are read only by default even without metamethods and cannot be destroyed apart of the 
+	`:Destroy()` funtion. Calling it will result in a `error`
+	:::
+	:::tip Constant
+	`Userdata's` are read only by default even without metamethods making them perfect for read only data.
+	:::
+]=]
+
+--[=[
+	@within SecuredMetatable
+	@method Destroy
+
+	The only way to destroy the metatable when flags are assigned
+
+	@param self SecuredMetatable<T, MT>
+	@param Nuke boolean -- Complete destroy
+
+	@return nil
+
+	:::info Auto clean-up
+	`Destroy` contains a auto destroy function that can correctly clean up all basic `ROBLOX` objects and instances. `Nuke` is
+	used when you want to destroy `instances` left `false` it will only delete the reference to the instance.
+	:::
+	:::tip __destroy
+	The custom metamethod `__destroy` is a metamethod you can assign that will run before the auto destroy function so you can
+	clean up custom complex objects. Note this DOES NOT prevent the auto destroy function from running only it runs `__destroy` before `SmartClean`
+	:::
+	:::danger Userdata's
+	`Userdata` is read only by default and CANNOT be destroyed running `:Destroy` on a userdata will result in an `error`
+	:::
+]=]
+
+--- @class TransferTable
+--- The middle man class that transfers the templates and assigns metamethods to create a secured table object 
+
+--[=[
+	@interface TransferMetatable<T, MT>
+	@within TransferTable
+
+	.Table T -- Front table template
+	.Metatable MT -- Metatable template
+	.IsMetatable boolean
+
+]=]
+
+--[=[
+	@method WriteMetamethods<T, MT, MM>
+	@within TransferTable
+
+	@param self TransferMetatable<T, MT>
+	@param Metamethods MetaMethods<MM>
+	@param Flag string -- string assigned to `__metatable`
+
+	
+]=]

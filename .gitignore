@@ -9,3 +9,6 @@ sourcemap.json
 
 # old
 tmp2.luau
+
+#Doc build
+build

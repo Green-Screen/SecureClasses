@@ -1,0 +1,32 @@
+changelog = true
+gitSourceBranch = "main"
+
+[docusaurus]
+tagline = "A metatable and userdata class wrapper built for security"
+
+[[navbar.items]]
+className = "discord-logo-link"
+href = "https://green-screen.github.io/Portfolio/"
+position = "right"
+title = "Portfolio"
+
+[[navbar.items]]
+href = "https://www.roblox.com/users/432990469/profile"
+label = "Roblox"
+position = "right"
+
+[home]
+enabled = true
+includeReadme = false
+
+[[home.features]]
+description = "Wraps all metatables and userdatas to have equivalent security and protects as default roblox and production classes used throughout the ROBLOX engine all while maintaining a light weight footprint and low level security against potential exploits."
+title = "Security"
+
+[[home.features]]
+description = "Minimal interfearnce and still provides all the normal and proper functions in ways that makes it similar and familiar to using normal unwrapped metatables."
+title = "Light Weight"
+
+[[home.features]]
+description = "Due to Secure Classes light weight and ease of use gives it versatillity and easy to embed into new and old systems to easily boost their security and protections to make a \"proper and stable\" class"
+title = "Embeddable"
