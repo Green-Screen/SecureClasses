@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkdocs=self.webpackChunkdocs||[]).push([[521],{7676:e=>{e.exports=JSON.parse('[{"type":"link","href":"/api/SecuredMetatable","label":"\u200bSecured\u200bMetatable"},{"type":"link","href":"/api/TransferTable","label":"\u200bTransfer\u200bTable"}]')}}]);

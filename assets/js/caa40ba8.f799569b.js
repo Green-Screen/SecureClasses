@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkdocs=self.webpackChunkdocs||[]).push([[497],{2706:e=>{e.exports=JSON.parse('[{"value":"Types","id":"types","level":2},{"value":"TransferMetatable","id":"TransferMetatable","level":3},{"value":"Functions","id":"functions","level":2},{"value":":WriteMetamethods","id":"WriteMetamethods","level":3}]')}}]);
