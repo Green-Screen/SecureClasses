@@ -1,16 +1,18 @@
-<div align="center">
-    <h1>Secure Classes</h1>
+# SecureClasses
+### Current Version: V 1.2.1
+## Documentation: 
+### [How to use?]("https://green-screen.github.io/SecureClasses")
 
-</div>
-
-## Current Version: V 1.1.0
-
+## What is Secure Classes?
 Secure Classes is a metatable and userdata class wrapper ment to properly wrap all objects to properly protect them
 and maintain a clean and consice structure that is up to modern standards
 
+## Warnings
 ### **Make sure you set UseNewLuauTypeSolver to enabled in workspace properties to get proper intellisense**
 
 **Due to the experimental status of the type solver sometimes intellisense will not be available due to the complex tupe casting and packing enviorment**
+
+
 
 ### **Features:**
 

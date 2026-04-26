@@ -5,7 +5,7 @@ sidebar_position: 2
 # Installation
 
 ## Method #1 - Roblox
-Download straight from the [roblox marketplace](tmp) this will only contain the module itself.
+Download straight from the [roblox marketplace](https://github.com/evaera/moonwave) this will only contain the module itself.
 
 ## Method #2 - Github
 Download straight from the releases subdirectory of this [repository](https://github.com/Green-Screen/SecureClasses/releases)
