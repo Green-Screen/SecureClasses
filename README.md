@@ -1,6 +1,6 @@
 # SecureClasses
 ### Current Version: V 1.2.1
-## Documentation: 
+## Documentation
 ### [How to use?]("https://green-screen.github.io/SecureClasses")
 
 ## What is Secure Classes?
