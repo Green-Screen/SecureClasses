@@ -35,7 +35,7 @@ local MetamethodStatuses = {
 	["__idiv"] = true,
 	["__mod"] = true,
 	["__pow"] = true,
-	["__tostring"] = true,
+	["__tostring"] = true, -- Has a default but is writtable
 	["__len"] = true,
 	["__eq"] = true,
 	["__lt"] = true,
@@ -176,11 +176,11 @@ local Metamethods = function<T, MT, MM>(self: TransferMetadata<T, MT>, Metametho
 		return error(string.format("%s table is read only", SERVICE_NAME), 10)
 	end
 
-    --[[Tmp.__tostring = function()
+    Tmp.__tostring = function()
         return Flag
-    end]]
+    end
 
-	--Tmp.__metatable = Flag
+	Tmp.__metatable = Flag
 
     if MD.IsMetatable then
         return setmetatable(MD.Table, Tmp) :: any
