@@ -1,4 +1,5 @@
 --!strict
+warn("USERDATA TEST ACTIVE")
 
 -- Userdata Test
 local SecureClasses = require("../")
@@ -8,7 +9,8 @@ local T = {
 }
 
 local MT = {
-    ["Test2"] = false
+    ["Test2"] = false,
+    ["_Private"] = "Private"
 }
 
 
@@ -45,6 +47,7 @@ print(Userdata.Test2)
 
 -- Not ok
 print(Userdata.Test3)
+print(Userdata._Private)
 
 -- Will lock table and metatable with flag
 -- table can be overwritten with __tostring metamethod
