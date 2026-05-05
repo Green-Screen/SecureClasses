@@ -312,7 +312,7 @@ end
 
 --[=[ 
 	@class SecuredMetatable
-	A lightweight metatable/Userdata wrapper built for security and maintain proper code edicate among custom user objects and instances with built in protections and helping features while still providing raw metatable support.
+	A lightweight metatable wrapper built for security and maintain proper code edicate among custom user objects and instances with built in protections and helpful features while still providing the full raw [metatable](https://create.roblox.com/docs/luau/metatables) api.
 	| Syntax | Result |
 	| ---- | ------- |
 	| RegularProperty | Denotes a `Standered` property **_Anything else_**.  This is the default property that is read-only  |
