@@ -2,7 +2,7 @@ changelog = true
 gitSourceBranch = "main"
 
 [docusaurus]
-tagline = "A metatable and userdata class wrapper built for security"
+tagline = "A metatable wrapper built for embeddability and security"
 
 [[navbar.items]]
 className = "discord-logo-link"

@@ -1,120 +1,181 @@
 # WorkFlows
 :::caution
-When writing metamethods that interact with the main class be sure to use it's raw function to prevent C stack overflows such as `rawset`, `rawget`, `rawlen`, `rawequal`
-:::
-:::tip
-`Userdata's` are almost identical to metatables but are limited as they are permanently read-only and should only be used for constant data that needs to be protected.
+When writing metamethods that interact with the main class be sure to follow the class [writing style](#example):
 :::
 
-### Wrapped Metatable
+# Wrapped Metatable
 
-#### 1. Creating Transfer class
-```lua
---!strict
+:::info Sorting
+You are able to mix around the data inside of the `Tabe`, `Metatable`, and `Metamethods` as during runtime they are sorted into their correct categories. __This is NOT recommended__. The reason is the returned `Wrapped Metatable` class type is the union of `T & MT` or `Table & Metatable` + `wrapped class` this allows the metamethods to not be included inside of the typed object. _Note: Due to the current state of type functions Private variables will be apart of the intellisense but **CANNOT** be accessed during runtime through normal indexing_.
+:::
 
--- Metatable test
-local SecureClasses = require("../")
-
-local T = {
-	["Test1"] = true, -- Creates a default property Read-Only
-	["_Protected"] = true, -- Creates a Protected property Internal only
-	["__Metamethod"] = "Test", -- Creates a Metamethod property must be a legal metamethod AND must be written in the metamethod table (THIS WILL ERROR)
-	["___UnProtected"] = "Test", -- Creates a Unprotected property without Read and Write restrictions
-}
-
-local MT = { -- Same syntax rules apply for MT as does T
-	["Test2"] = false,
-	UpdateTest1 = function(self: any, NewValue: any)
-		rawset(self, "Test2", NewValue)
-	end,
-	["_Private"] = "Private",
-	["___UnProtected2"] = "NewValue",
-	["__Test"] = 12 -- Will cause error
-}
-
-type tabletype = { ["Test1"]: boolean } & { ["Test2"]: boolean }
-
-local TransferTable = SecureClasses.NewMetatable(T, MT)
-```
-
-### 2. Assign metamethods
+## 1. Creating a Header table
 ```lua
 --!strict
 -- Having strict enabled will allow the type solver to lint your metamethod table more accuratly
 
-local Metamethods: SecureClasses.MetaMethods<tabletype> = { -- Must only contain legal metamethods
-	__unm = function(s)
-		s.Test1 = not s.Test1
-		s.Test2 = not s.Test2
-		return s
-	end,
+-- Properties. This should be the equivilent to the table of the class.
+local Player = {
+	Username = "Admin", -- Read only,
+	_UserID = 12345678, -- Protected/Private
+	__typeKey = "PlayerWrapper", -- Metamethod, This is legal but NOT RECOMMENDED
+	___DisplayName = "Owner Of Game", -- Unprotected/Public
+}
+```
+:::tip Property Denotions
+**[Poperty Denotions](/api/SecuredMetatable)**
+:::
 
-	__concat = function<V>(s, v: V)
-		for i: any, k: any in v :: any do
-			(s :: any)[i] = k
-		end
-		return s :: any
-	end,
 
-	__destroy = function(s)
-		warn("Destroying class")
-	end,
+## 2. Creating a Metadata table
+```lua
+--!strict
+-- Having strict enabled will allow the type solver to lint your metamethod table more accuratly
 
-	__tostring = function() -- The ONLY writable metamethod that has a default
-		return "Show this string when you print"
+--[[
+	Syntax: self[__typeKey][PropertyToIndex]
+
+	Tips:
+	Cast self to any: (self :: any)
+	This will clear any type errors due to the Property of __typeKey not being apart of the type union
+
+	__typeKey cannot be indexed:
+	Due to security you should have your __typeKey cannot be indexed via: self[self.__typeKey]
+	You must have a constant assigned to __typeKey and the index used to access the __Metatable 
+	object that holds the only reference to the private read-Only data {Protected, and Default objects}
+
+	DO NOT INVOKE RAW FUNCTIONS:
+	Due to the structure raw functions shouldn't be invoked.
+]]
+local PersonFunctions = {
+["SetUsername"] = function(self: Player, newUsername: string)
+	(self :: any).PlayerWrapper["Username"] = newUsername;
+end,
+
+["GetUserID"] = function(self: Player) : number
+	return (self :: any).PlayerWrapper["_UserID"]
+end,
+
+["SetUserID"] = function(self, ID: number)
+	(self :: any).PlayerWrapper["_UserID"] = ID
+end,
+
+}
+```
+
+:::tip Private and Default property indexing with meta-functions
+To index a Private property or Default property **[Poperty Denotions](/api/SecuredMetatable)** through a meta-function you must index through the constant metamethod `__typeKey` _By default it is assigned to `Flag`_ but can be overwritten in the Metamethod table.
+:::
+### Example
+```lua
+-- Correct
+
+local Player = {
+	_UserID = 12345 -- Private Property
+}
+local PlayerMetadata = {
+	["GetUserID"] = function(self)
+		-- Cast self to any to suppress type error
+		-- Index is = __typeKey
+		return (self :: any).PlayerPrivateKey["_UserID"] -- Return: 12345
 	end
-
 }
 
-local MetaTable = TransferTable:WriteMetamethods(Metamethods, "Protected Metatable")
-```
+local PlayerMetamethods = {
+	__typeKey = "PlayerPrivateKey"
+}
 
-### 3. Basic indexing and writing
+-- Incorrect
+
+local Player = {
+	_UserID = 12345 -- Private Property
+}
+local PlayerMetadata = {
+	["GetUserID"] = function(self)
+		-- Cast self to any to suppress type error
+		-- Index is = __typeKey
+		return (self :: any).__typeKey["_UserID"] -- Return: Attempt to index nil with "_UserID"
+		-- When you index self it should be the literal of __typeKey
+	end
+}
+
+local PlayerMetamethods = {
+	__typeKey = "PlayerPrivateKey"
+}
+```
+:::danger Raw functions
+	Using raw functions inside of metadata functions and metamethods will lead to unexpected results.
+:::
+
+## 3. Creating a Metamethod table
 ```lua
 --!strict
 -- Having strict enabled will allow the type solver to lint your metamethod table more accuratly
 
--- Ok
-print(MetaTable.Test1)
-print(MetaTable.___UnProtected)
+local PlayerMetamethods:SecureClasses.metamethods<typeof(Player) & typeof(PlayerMetadata)> = {
+	__typeKey = "PlayerWrapper", -- The index to access the metadata table
 
--- Not Ok
-print(MetaTable._Protected1) -- Raise a warning returning nil
-print(MetaTable.__Metamethod) -- This would throw an error before reaching this print
+	__destroy = function(self, OptionalBooleanValue:boolean?) -- Function to run before auto destroy function
+		print(self, "is being destroyed")
+	end,
 
--- Will lock table and metatable with flag
--- table can be overwritten with __tostring metamethod
-print(MetaTable, getmetatable(MetaTable))
-
--- Not Ok
-MetaTable.Test1 = false -- Read only error
-MetaTable._Protected1 = 200 -- Internal error
-MetaTable.__Metamethod = function() end -- This would throw an error before reaching this write
-
--- Ok
-MetaTable.___UnProtected = 1000::any
-print(MetaTable.___UnProtected)
-
-
--- Metamethod to update default and private varible
-MetaTable:UpdateTest1(20)
-
--- prints new value
-print(MetaTable.Test2)
+	__tostring = function(self:Person) -- metamethod that runs when you try to call toString() or print()
+        return `Username: {self.Username}, UserID: {self.PlayerWrapper._UserID}`
+    end,
+}
 ```
 
-### 4. Destroy
+:::caution Metamethod Statuses
+Some metamethods are auto assigned and cannot be overwritten or read when creating the metamethod object. Check **[Metamethod Statuses](/api/SecuredMetatable#MetaMethods)** for information about every available metamethod supported by this class.
+:::
+
+## 4. Creating a Wrapped Metatable
 ```lua
 --!strict
 -- Having strict enabled will allow the type solver to lint your metamethod table more accuratly
+local SecureClasses = require("Path to SecureClasses Module")
 
--- Destroy with nuke
-MetaTable:Destroy(true)
+local SecuredClass = SecureClasses.NewMetatable(Player, PlayerMetadata, "Player", Playermetamethods)
 
--- Not Ok
-print(MetaTable.Test1)
-print(MetaTable.Test2)
+print(SecuredClass) -- Returns __tostring Compile
 
--- Empty
-print(MetaTable, getmetatable(MetaTable))
+print(getmetatable(SecuredClass)) -- "Player": = to Flag param
+
+print(SecuredClass._UserID) -- Nil & Warn is raised
+
+print(SecuredClass.Username) -- Admin
+
+-- Assigns a new value to a public property
+SecuredClass.___DisplayName = "Player1"
+
+print(SecuredClass.___DisplayName) -- Player1
+
+-- The metatable is never directly indexed so all metamethods remain protected
+print(self.__typeKey) -- Nil
 ```
+:::info Read-Only
+By default there are 2 write protections that protect against writes even from raw functions
+:::
+
+## 5. Destroying a Wrapped Metatable
+```lua
+--!strict
+-- Having strict enabled will allow the type solver to lint your metamethod table more accuratly
+local SecureClasses = require("Path to SecureClasses Module")
+
+local SecuredClass = SecureClasses.NewMetatable(Player, PlayerMetadata, "Player", Playermetamethods)
+
+-- Error
+SecuredClass.__index = nil -- table is read only
+
+-- Runs __destroy first then AutoClean
+SecuredClass:Destroy() -- prints (self, "is being destroyed")
+
+print(SecuredClass, getmetatable(SecuredClass)) -- {}, nil
+
+-- SecuredClass is now destroyed and deallocated
+```
+
+:::tip __destroy
+Assign the metamethod `__destroy` to have a custom destroy function. Check limitations of `:Destroy()` **[Here](/api/SecuredMetatable#Destroy)**
+:::

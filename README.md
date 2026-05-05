@@ -20,7 +20,7 @@ and maintain a clean and consice structure that is up to modern standards
 -   Statically typed
 -   Type solver support
 -   Built in destroy function and options to assign custom ones
--   new metamethod __destroy & __typeKey
+-   new metamethods __destroy & __typeKey
 -   Built in support for `private`, `protected`, `default` and `unprotected` table properties
 -   Secure objects and classes that are still easy to interact with
 
@@ -29,5 +29,7 @@ and maintain a clean and consice structure that is up to modern standards
 -   Support for userdatas removed
 -   Refactored package logic
 -   Better tutorial documentation
+-   Support for better type inferencing (waiting for better type functions)
+-   
 
 **_This module is still in testing and is not yet ready for production usage_**

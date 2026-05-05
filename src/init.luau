@@ -1,7 +1,8 @@
--- SecureClasses V 2.0.0
+-- SecureClasses V 2.0.1
 -- @Patriots8800
 
 --!strict
+-- Documentation: https://green-screen.github.io/SecureClasses
 
 ----------------------------------------------------------------------------------------------
 
@@ -316,7 +317,7 @@ end
 	| Syntax | Result |
 	| ---- | ------- |
 	| RegularProperty | Denotes a `Standered` property **_Anything else_**.  This is the default property that is read-only  |
-	| _PrivateProperty | Denotes a `Private` property **_1 Underscore_** that cannot be indexed normally `Object[Index]`. Must be manipulated with a special syntax see #page |
+	| _PrivateProperty | Denotes a `Private` property **_1 Underscore_** that cannot be indexed normally `Object[Index]`. Must be manipulated with a special syntax see [#page:](/docs/Examples#2-creating-a-metadata-table) |
 	| __Metamethod | Denotes a `Metamethod` **_2 Underscores_**.  NOTE that some metamethods are assigned within the secured class and cannot be changed. IE: *__index*, *__newindex*, *__metatable* |
 	| ___UnprotectedProperty | Denotes a `Free` property **_3 Underscores_**.  This property will have **NO** read or write protections |
 
@@ -377,7 +378,7 @@ end
 	.__mode ("K" | "V" | "KV")?, -- Sets the garbage collection rule of the table
 	.__metatable string -- Locks metatable 
 
-	.__destroy ((self: T, OptionalBooleanArgument:boolean) -> ())? -- custom function to be assigned when &apos;Destroy is called&apos;
+	.__destroy ((self: T, OptionalBooleanArgument:boolean) -> ())?, -- custom function to be assigned when &apos;Destroy is called&apos;
 	.__typeKey string?, -- The index needed to access the private and default metatable,
 
 	A strongly typed metatable of all lua 5.1 metamethods + extras
@@ -437,7 +438,38 @@ end
 
 	@return WrappedMetatable -- A special securely wrapped metatable
 
-	Creates a new TransferMetatable object that will turn into a protected metatable
+	Creates a new Wrapped Metatable object
+
+	```lua
+		local T = {
+			ClassName = "SecuredClass"
+			_PrivateData = 10,
+		}
+		
+		local MT = {
+			GetPrivateData = function(self)
+				return self.Key._PrivateData
+			end
+		}
+		
+		local MM:SecuredClasses.MetaMethods<typeof(T) & typeof(MT)> = {
+			__typeKey = "Key",
+
+			__destroy = function(self)
+				print("Destroyed", getmetatable(self)) -- Destroyed SecuredClass
+			end,
+
+			__tostring = function(self)
+				return `Class: {self.ClassName}`
+			end
+		}
+		
+		local SecuredClass = SecuredClasses.NewMetatable(T, MT, "SecuredClass", MM)
+
+		SecuredClass:GetPrivateData() -- 10
+
+		print(SecuredClass._PrivateData) -- Nil & Warn
+	```
 
 	:::tip Type union
 	Due to the nature of `generics` and the current state of `type functions` try and keep metamethods out of the Metatable or Table "_Leaving them in will not break anything as they are sorted into their correct categories_". As this can cause the type union to include non accessible type objects. And due to the experimental state of `type functions` there isnt a way to programmatically remove them.
@@ -448,12 +480,28 @@ end
 	@within SecuredMetatable
 	@method Destroy
 
-	The only way to destroy the metatable when flags are assigned
-
 	@param self WrappedMetatable
 	@param Nuke boolean -- Complete destroy or optional boolean parameter for `__destroy`
 
 	@return nil
+
+	The only way to destroy the metatable when flags are assigned
+
+	```lua
+		-- Inherits properties from above
+
+		local SecuredClass = SecuredClasses.NewMetatable(T, MT, "SecuredClass", MM)
+
+		SecuredClass:GetPrivateData() -- 10
+
+		print(SecuredClass, getmetatable(SecuredClass)) -- Class: SecuredClass, SecuredClass
+
+		SecuredClass:Destroy() -- Nil
+
+		print(SecuredClass, getmetatable(SecuredClass)) -- {}, Nil
+
+		SecuredClass:GetPrivateData() -- Attempt to index nil with GetPrivateData
+	```
 
 	:::info Auto clean-up
 	`Destroy` contains a auto destroy function that can correctly clean up all basic `ROBLOX` objects and instances. `Nuke` is

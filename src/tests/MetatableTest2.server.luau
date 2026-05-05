@@ -1,17 +1,21 @@
 --!strict
-local SecureClasses = require("../")
-local PersonData = {
-	Age = 40,
-	IsMale = true,
-	_ID = "78",
 
-	___TestInt = 30,
+-- Documentation: https://green-screen.github.io/SecureClasses
+
+local SecureClasses = require("../")
+local EasyType = require("../Dependencies/EasyType")
+local PersonData = {
+	Age = 40, -- Default
+	IsMale = true, -- Default
+	_ID = "78", -- Private
+
+	___TestInt = 30, -- Public
 }
 
 local PersonFunctions = {
 	["SetAge"] = function(self: Person, NewAge: number)
-		(self :: any).Person["Age"] = NewAge;
-        (self :: any).Person["Age2"] = NewAge
+		(self :: any).Person["Age"] = NewAge
+		--(self :: any).Person["Age2"] = NewAge
 	end,
 	["SwapGender"] = function(self: Person)
 		(self :: any).Person["IsMale"] = not (self :: any).Person["IsMale"]
@@ -24,30 +28,16 @@ local PersonFunctions = {
 	end,
 }
 
-type PersonData = {
-	Age: number,
-	IsMale: boolean,
-	_ID: string,
-	___TestInt: number,
-}
-
-type PersonMethods = {
-	SetAge: (self: Person, NewAge: number) -> (),
-	SwapGender: (self: Person) -> (),
-	SetID: (self: Person, ID: string) -> (),
-	GetID: (self: Person) -> string,
-}
-
-type Person = PersonData & PersonMethods
+type Person = typeof(PersonData) & typeof(PersonFunctions)
 
 local PersonMetaMethods: SecureClasses.MetaMethods<Person> = {
 	__destroy = function(self: Person, Nuke: boolean?)
 		warn("Destroying person")
 	end,
 
-	__tostring = function(self:Person)
-        return `Age: {self.Age}, IsMale: {self.IsMale}`
-    end,
+	__tostring = function(self: Person)
+		return `Age: {self.Age}, IsMale: {self.IsMale}`
+	end,
 
 	__add = function(self: Person, Value: number)
 		local NewAge = self.Age + Value
@@ -61,31 +51,39 @@ local PersonMetaMethods: SecureClasses.MetaMethods<Person> = {
 
 local Class = SecureClasses(PersonData :: Person, PersonFunctions :: Person, "Test", PersonMetaMethods)
 
-print(Class, getmetatable(Class))
 
-print(Class.Age)
-print(Class._ID)
+print(Class, getmetatable(Class)) -- Tostring Result, Test
 
-Class:SetAge(500)
-print(Class:GetID())
+print(Class.Age) -- 40
+print(Class._ID) -- Nil & Warn
 
-print(Class.Age)
+Class:SetAge(500) -- Age = 500
+print(Class:GetID()) -- "78"
 
--- Error
---print(Class._ID)
+print(Class.Age) -- 500
+
+Class:SetID("300")
+
+print(Class._ID) -- Nil & Warn
+print(Class:GetID()) -- "300"
 
 -- Error
 --Class.Age = 30
 
-Class:SwapGender()
+Class:SwapGender() -- Not Gender
 
-print(Class.IsMale)
+print(Class.IsMale) -- false
 
-Class.___TestInt = 400
-print(Class.___TestInt)
+Class.___TestInt = 400 -- 400
+print(Class.___TestInt) -- 400
 
-print(Class, getmetatable(Class))
+print(Class, getmetatable(Class)) -- Tostring Result, Test
 
-Class:Destroy()
+print(EasyType(Class)) -- table
 
-print(Class, getmetatable(Class))
+Class:Destroy() -- nil
+
+print(Class, getmetatable(Class)) -- {}, Nil
+
+-- Error
+Class:GetID() -- Attempt to index nil with GetID
