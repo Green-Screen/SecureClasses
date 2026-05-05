@@ -3,7 +3,7 @@ sidebar_position: 2
 ---
 
 # Installation
-# Current version: 1.4.10
+# Current version: 2.0.1
 
 ## Method #1 - Roblox
 Download straight from the [roblox marketplace](https://github.com/evaera/moonwave) this will only contain the module itself.

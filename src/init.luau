@@ -1,4 +1,4 @@
--- SecureClasses V 1.4.1
+-- SecureClasses V 2.0.0
 -- @Patriots8800
 
 --!strict
@@ -43,12 +43,15 @@ local MetamethodStatuses = {
 	["__mode"] = true,
 	["__metatable"] = false, -- Not writtable
 	["__destroy"] = true, -- Custom
+	["__typeKey"] = true, -- Custom
 }
 
-local function GetLeadingUnderscores(str:string):number
-	if EasyType(str) ~= "string" then return 0 end
+local function GetLeadingUnderscores(str: string): number
+	if EasyType(str) ~= "string" then
+		return 0
+	end
 	local Counter = 0
-	for _, v:number in ipairs({str:byte(1,4)}) do
+	for _, v: number in ipairs({ str:byte(1, 4) }) do
 		if v == UnderscoreASCII then
 			Counter += 1
 		else
@@ -58,28 +61,38 @@ local function GetLeadingUnderscores(str:string):number
 	return Counter
 end
 
-local function CheckForMetamethod(T: { any }): never?
-	for i: any, v: any in T do
-		if GetLeadingUnderscores(i) == 2 then
-			if MetamethodStatuses[i] then
-				return error(`Metamethod {i} is forbidden`, 10)
+local function SortIntoCorrectTable<T, MT, MM>(T: T & MT & MM): (T, MT, MM)
+	local Table: { [any]: any }, Metatable: { [any]: any }, Metamethods = {}, {}, {}
+	for K, V in T :: { [any]: any } do
+		local UnderscoreCT = GetLeadingUnderscores(K)
+
+		-- Private variable
+		-- Cannot be read or written to
+		if UnderscoreCT == 1 then
+			Metatable[K] = V
+			continue
+		end
+		-- Forced public variable
+		-- Can be read or written too through normal indexing
+		if UnderscoreCT == 3 then
+			Table[K] = V
+			continue
+		end
+		-- Metamethod variable
+		-- Must be a valid metamethod
+		if UnderscoreCT == 2 then
+			if not MetamethodStatuses[K] then
+				error(string.format("%s Metamethod [ %s ] is forbidden or undefined", SERVICE_NAME, K :: string))
 			else
-				return error(`Metamethod Prefix on {i} is forbidden`, 10)
+				Metamethods[K] = V
 			end
 		end
-	end
-	return nil
-end
-
-local function CheckForBannedMetamethods(T: { any }): never?
-	for i: any, v: any in T do
-		if GetLeadingUnderscores(i) ~= 2 then
-			return error(`Expected metamethod got {i} is not a valid metamethod`, 10)
-		elseif not MetamethodStatuses[i] then
-			return error(`Metamethod {i} is forbidden`, 10)
+		-- Default Variable
+		if UnderscoreCT == 0 or UnderscoreCT > 2 then
+			Metatable[K] = V
 		end
 	end
-	return nil
+	return Table, Metatable, Metamethods
 end
 
 -- Auto clean table of basic roblox instances and objects.
@@ -114,9 +127,10 @@ local function SmartClose(self: { [any]: any }, Nuke: boolean)
 	end
 
 	table.clear(self)
-    if EasyType(getmetatable(self) == "table") then
-        setmetatable(self, nil)
-    end
+	if EasyType(getmetatable(self) == "table") then
+		setmetatable(self, nil)
+	end
+	self = nil :: never
 	return nil
 end
 
@@ -136,76 +150,74 @@ end
 
 -- Flag is the string this will be printed when you try to call GetMetatable() or print with the default __tostring method.
 
-local Metamethods = function<T, MT, MM>(self: TransferMetadata<T, MT>, Metamethods: MetaMethods<MM>, Flag: string) : T&MT
-	CheckForBannedMetamethods(Metamethods :: any)
-	assert(EasyType(Flag) == "string", string.format("%s Flag must be a string got %s", SERVICE_NAME, Flag))
+local function CreateSecureClass<T, MT, MM>(T: T, MT: MT, MM: MetaMethods<T & MT>, Flag: string)
+	-- The base class is stored inside of SecureMetamethods
+	--ConcatTables(SecureMetamethods, MM::any)
 
-	local MD = getmetatable(self) :: getmetatable<TransferMetadata<T,MT>>
-    -- All metamethods are stored in tmp
-	local Tmp = {}
-
-	ConcatTables(Tmp, Metamethods :: any)
+	MT = setmetatable(MT, {
+		__newindex = function()
+			return error(string.format("%s Metadata table cannot be assigned new keys", SERVICE_NAME), 10)
+		end,
+	})
 
 	local function NestedClose(...)
-        if not MD.IsMetatable then
-            return error(string.format("%s Userdatas are read-only and cannot be destroyed, use them for constant data as you have little control over their collection", SERVICE_NAME), 10) :: never
-        end
-
-        if (Tmp::any).__destroy then
-            (Tmp.__destroy::any)(...)
-        end
-		SmartClose(Tmp, true)
+		if (MM :: any).__destroy then
+			(MM.__destroy :: any)(...)
+		end
+		setmetatable(MT, nil)
+		SmartClose(MM :: any, true)
 
 		return SmartClose(...) :: any
 	end
 
-	Tmp.__index = function(self: { [any]: any }, index: any)
-		
-		if GetLeadingUnderscores(index) == 1 then
+	(MM :: any)["__index"] = function(self: { [any]: any }, index: any)
+		local uCT = GetLeadingUnderscores(index)
+		if uCT == 1 then
 			return warn(string.format("%s %s is a private property", SERVICE_NAME, index)) :: any
 		elseif index == "Destroy" then
-            return NestedClose
+			return NestedClose
+		elseif index == MM.__typeKey then
+			return MT
 		end
-		return (MD.Metadata::{[any]:any})[index]
+
+		return (MT :: any)[index]
 	end
 
-	Tmp.__newindex = function(self: { [any]: any }, index: any, Value: any)
-		if GetLeadingUnderscores(index) == 3 then
-			return rawset(self, index, Value)
-		end
-		return error(string.format("%s table is read only", SERVICE_NAME), 10)
+	(MM :: any)["__newindex"] = function(self: { [any]: any }, index: any, Value: any)
+		return error(string.format("%s Secured table is read only", SERVICE_NAME), 10)
 	end
 
-    Tmp.__tostring = function()
-        return Flag
-    end
+	if not MM.__tostring then
+		MM["__tostring"] = function()
+			return Flag
+		end
+	end
 
-	Tmp.__metatable = Flag
+	(MM :: any)["__metatable"] = Flag
 
-    if MD.IsMetatable then
-        return setmetatable(MD.Table, Tmp) :: any
-    else
-        ConcatTables(MD.Metadata, MD.Table)
-        local Proxy = newproxy(true)
-        local MT = getmetatable(Proxy)
-        ConcatTables(MT, Tmp)
+	if not MM.__typeKey then
+		MM["__typeKey"] = Flag
+	end
 
-        return Proxy :: any
-    end
+	-- Creates protected metadata holder
+
+	(MM :: any)["__metadata"] = MT
+
+	return setmetatable(T, MM)
 end
 
 ----------------------------------------------------------------------------------------------
 
 -- 							[[ Types ]]
 
-export type MetaMethods<T> ={
+export type MetaMethods<T> = {
 	--                             [Complex functions]
 	--__index: ((self:T, index:(keyof<T> | any)) -> () | {[any]:any} )?, -- self[keyof<T>] Indexes the table attached (Not the actual Metatable)
 	--__newindex: ((self:T, index:any, value:any) -> () | {[any]:any})?, -- self[keyof<T>] = V Adds new value (locked for read only)
 	__call: ((self: T, ...any) -> any)?, -- self() function call
 	__concat: (<V>(self: T, value: V) -> T & V)?, -- self..value Concatenation (combine)
 	__unm: ((self: T) -> T)?, -- -self Unary  (inverse)
-	__iter: (typeof(next))?, -- Generalized iteration for K, V in self do --task-- end (Type of next as default)
+	__iter: typeof(next)?, -- Generalized iteration for K, V in self do --task-- end (Type of next as default)
 
 	--                             [Calculations]
 
@@ -232,41 +244,35 @@ export type MetaMethods<T> ={
 	__mode: ("K" | "V" | "KV")?, -- Sets the garbage collection rule of the table
 	--__metatable:string -- Locks metatable (Not editable)
 
-    --                          [Custom]
-    __destroy: ((self: T, OptionalBooleanArgument:boolean) -> ())? -- custom function to be assigned when 'Destroy is called'
-    
+	--                          [Custom]
+	__destroy: ((self: T, OptionalBooleanArgument: boolean?) -> ())?, -- custom function to be assigned when 'Destroy is called'
+	__typeKey: string?, -- The index needed to access the metatable,
+	--__privateRead: ((self:T, index:any) -> ())?, -- custom function that is ran when you try and index `__typeKey` -- Runs when __index is called on `__typeKey`
+	--__privateWrite: ((self:T, index:any, value:any?) -> ())?, -- custom function that is ran when you try and write to the metatable attached to `__typeKey` -- Runs when __newindex is called on `__typeKey`
 }
 
-type TransferMetadata<T, MT> = setmetatable<{
-	WriteMetamethods: <MM>(self: TransferMetadata<T, MT>, Metamethods: MetaMethods<MM>, Flag: string) -> WrappedMetatable<T, MT>
-}, {
-	Table: T,
-	Metadata: MT,
-	IsMetatable: boolean,
-}>
+export type WrappedMetatable<T> = T & {
+	Destroy: (self: WrappedMetatable<T>, Nuke: boolean?) -> nil,
+}
 
-type WrappedMetatable<T,MT> = {
-    Destroy:(self: WrappedMetatable<T,MT>, Nuke: boolean) -> nil
-} & RemovePrivate<T> & RemovePrivate<MT>
-
-type function RemovePrivate(T:type)
-
-	for i : type, v : { read: type?, write: type? } in T:properties() do
+-- Shits just broken
+type function RemovePrivate(T: type)
+	for i: type, v: { read: type?, write: type? } in T:properties() do
 		local index = i:value()
+		print("Removed", index)
 
 		local Counter = 0
-		for _, vv:number in ipairs({(index::string):byte(1,4)}) do
+		for _, vv: number in ipairs({ (index :: string):byte(1, 4) }) do
 			if vv == 95 then
 				Counter += 1
 			else
 				break
 			end
 		end
-		
-		if Counter == 1 then
+
+		if Counter < 3 then
+			print("Removed", index)
 			T:setproperty(i, nil)
-		elseif Counter == 2 then
-			print(string.format("%s Metamethod {%s} cannot be written to Table or Metatable", "[SecureClasses]:", index::string))
 		end
 	end
 	return T
@@ -280,36 +286,15 @@ end
 -- MT is the metatable
 -- Metatables are not allowed to have metamethods included when being created from NewMetatable or NewUserdata
 
-return {
-	NewMetatable = function<T, MT>(T: T, MT: MT): TransferMetadata<T, MT>
-		CheckForMetamethod(T)
-		CheckForMetamethod(MT)
+return function<T, MT, MM>(T: T, MT: MT, Flag: string, MM: MetaMethods<T & MT>?): WrappedMetatable<T>
+	assert(EasyType(Flag) == "string", string.format("%s Flag must be a string got %s", SERVICE_NAME, Flag))
+	local Transfer = T
+	ConcatTables(Transfer, MT :: any or {})
+	ConcatTables(Transfer, MM :: any or {})
+	local Table: T, Metatable: MT, Metamethods: MM = SortIntoCorrectTable(Transfer)
 
-		return setmetatable({
-			["WriteMetamethods"] = Metamethods,
-		}, {
-			["Table"] = T,
-			["Metadata"] = MT,
-			["IsMetatable"] = true,
-		}) :: any
-	end,
-
-	NewUserdata = function<T, MT>(T: T, MT: MT): TransferMetadata<T, MT>
-        CheckForMetamethod(T)
-        CheckForMetamethod(MT)
-
-        local Proxy = newproxy(true)
-        local MP = getmetatable(Proxy)
-
-        MP.WriteMetamethods = Metamethods
-        MP.Table = T
-        MP.Metadata = MT
-        MP.IsMetatable = false
-        MP.__index = MP
-
-        return Proxy
-    end,
-}
+	return CreateSecureClass(Table, Metatable, Metamethods, Flag) :: any
+end
 
 ----------------------------------------------------------------------------------------------
 
@@ -325,17 +310,15 @@ return {
 
 --					 		                                    [[ Documentation: ]]
 
-
 --[=[ 
 	@class SecuredMetatable
 	A lightweight metatable/Userdata wrapper built for security and maintain proper code edicate among custom user objects and instances with built in protections and helping features while still providing raw metatable support.
 	| Syntax | Result |
 	| ---- | ------- |
-	| _PrivateProperty | Denotes a `Private` property **_1 Underscore_** that cannot be indexed normally `Object[Index]`. Must be manipulated with raw functions and will not be included in the type union |
+	| RegularProperty | Denotes a `Standered` property **_Anything else_**.  This is the default property that is read-only  |
+	| _PrivateProperty | Denotes a `Private` property **_1 Underscore_** that cannot be indexed normally `Object[Index]`. Must be manipulated with a special syntax see #page |
 	| __Metamethod | Denotes a `Metamethod` **_2 Underscores_**.  NOTE that some metamethods are assigned within the secured class and cannot be changed. IE: *__index*, *__newindex*, *__metatable* |
 	| ___UnprotectedProperty | Denotes a `Free` property **_3 Underscores_**.  This property will have **NO** read or write protections |
-	| RegularProperty | Denotes a `Standered` property **_4 or more Underscores_ or No Underscores**.  This is the default property that is read-only  |
-	@since V 1.4.0
 
 	### Syntax Example
 	```lua
@@ -352,7 +335,7 @@ return {
 --					Types
 
 --[=[
-	@type ProtectedMetatable (T&MT&MM)
+	@type WrappedMetatable (T&MT&MM)
 	Table, metatable, and metamethods all linked together, metamethods are private
 	@within SecuredMetatable
 
@@ -395,12 +378,13 @@ return {
 	.__metatable string -- Locks metatable 
 
 	.__destroy ((self: T, OptionalBooleanArgument:boolean) -> ())? -- custom function to be assigned when &apos;Destroy is called&apos;
+	.__typeKey string?, -- The index needed to access the private and default metatable,
 
 	A strongly typed metatable of all lua 5.1 metamethods + extras
 	
 	
 	:::danger Forbidden
-	Metamethods: `__index`, `__newindex`, and `__metatable` are custom and constant and cannot be written or read from. `__tostring` is the only exception as by default it is assigned to `flag` but **IS WRITABLE** when writing the metamethod table. 
+	Metamethods: `__index`, `__newindex`, and `__metatable` are custom and constant and cannot be written or read from. `__tostring` and `__typeKey` are the only exceptions, by default they are assigned to `flag` but are  **EDITABLE** when writing the metamethod table. 
 	:::
 
 	:::caution Comparisons
@@ -408,75 +392,9 @@ return {
 	:::
 	
 	:::info New Metamethod
-	`__destroy` can be assigned to be ran before the auto cleanup of `:Destroy()`.
+	`__destroy` can be assigned to be ran before the auto cleanup of `:Destroy()`. `__typeKey` is a optional parameter _default is `Flag`_ this is the index of the `Metatable` object when you want to access private and default variables _ie: helper functions_
+	@since V 2.0.0
 	:::
-
-]=]
-
---[=[
-	@within SecuredMetatable
-
-	@function NewMetatable
-	
-	@param Table T -- The front table template and inital values
-	@param Metatable MT -- The metatable template and inital values
-
-	@return TransferTable -- A read-only wrapped metatable
-
-	Creates a new TransferMetatable object that will turn into a protected metatable
-]=]
-
---[=[
-	@within SecuredMetatable
-
-	@function NewUserdata
-	
-	@param Table T -- The front table template and inital values
-	@param Metatable MT -- The metatable template and inital values
-
-	@return TransferTable -- A read-only wrapped Userdata
-
-	Creates a new TransferMetatable object that will turn into a protected userdata
-
-	:::caution Read-Only
-	`Userdata's` are read only by default even without metamethods and cannot be destroyed apart of the 
-	`:Destroy()` funtion. Calling it will result in a `error`
-	:::
-
-	:::tip Constant
-	`Userdata's` are read only by default even without metamethods making them perfect for read only data.
-	:::
-]=]
-
---[=[
-	@within SecuredMetatable
-	@method Destroy
-
-	The only way to destroy the metatable when flags are assigned
-
-	@param self SecuredMetatable
-	@param Nuke boolean -- Complete destroy
-
-	@return nil
-
-	:::info Auto clean-up
-	`Destroy` contains a auto destroy function that can correctly clean up all basic `ROBLOX` objects and instances. `Nuke` is
-	used when you want to destroy `instances` left `false` it will only delete the reference to the instance.
-	:::
-
-	:::tip __destroy
-	The custom metamethod `__destroy` is a metamethod you can assign that will run before the auto destroy function so you can
-	clean up custom complex objects. Note this DOES NOT prevent the auto destroy function from running only it runs `__destroy` before `SmartClean ":Destroy"`
-	:::
-
-	:::danger Userdata's
-	`Userdata` is read only by default and CANNOT be destroyed running `:Destroy` on a userdata will result in an `error`
-	:::
-]=]
-
---[=[
-	@class TransferTable
-	The middle man class that transfers the templates and assigns metamethods to create a secured table object
 
 	### Metamethods and their status
 	| Metamethod | Write Safety | Read Safety |
@@ -502,34 +420,48 @@ return {
 	| __len | **True** | **False** |
 	| __iter | **True** | **False** |
 	| __destroy | **True** | **False** |
+	| __typeKey | **True** | **True** |
 
-
-]=]
---					Types
-
---[=[
-	@interface TransferMetatable 
-	@within TransferTable
-	@tag ReadOnly
-
-	.Table T -- Front table template
-	.Metatable MT -- Metatable template
-	.IsMetatable boolean
-
-	Middle man object with all its data stored inside of its metatable
 
 ]=]
 
 --[=[
-	@method WriteMetamethods
-	@within TransferTable
+	@within SecuredMetatable
 
-	@param self TransferMetatable
-	@param Metamethods MetaMethods
-	@param Flag string -- string assigned to `__metatable`
-
-	@return ProtectedMetatable
-
-	Compiles the protected metatable with its protected metamethods
+	@function NewMetatable
 	
+	@param Table T -- The front table template and inital values
+	@param Metatable MT -- The metatable template and inital values
+	@param Flag string -- The string that is assigned to __metatable, __tostring, and __typeKey by default
+	@param Metamethods MetaMethods -- The metamethod container
+
+	@return WrappedMetatable -- A special securely wrapped metatable
+
+	Creates a new TransferMetatable object that will turn into a protected metatable
+
+	:::tip Type union
+	Due to the nature of `generics` and the current state of `type functions` try and keep metamethods out of the Metatable or Table "_Leaving them in will not break anything as they are sorted into their correct categories_". As this can cause the type union to include non accessible type objects. And due to the experimental state of `type functions` there isnt a way to programmatically remove them.
+	:::
+]=]
+
+--[=[
+	@within SecuredMetatable
+	@method Destroy
+
+	The only way to destroy the metatable when flags are assigned
+
+	@param self WrappedMetatable
+	@param Nuke boolean -- Complete destroy or optional boolean parameter for `__destroy`
+
+	@return nil
+
+	:::info Auto clean-up
+	`Destroy` contains a auto destroy function that can correctly clean up all basic `ROBLOX` objects and instances. `Nuke` is
+	used when you want to destroy `instances` left `false` it will only delete the reference to the instance.
+	:::
+
+	:::tip __destroy
+	The custom metamethod `__destroy` is a metamethod you can assign that will run before the auto destroy function so you can
+	clean up custom complex objects. Note this DOES NOT prevent the auto destroy function from running only it runs `__destroy` before `SmartClean ":Destroy"`
+	:::
 ]=]

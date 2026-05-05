@@ -1,10 +1,10 @@
 # SecureClasses
-### Current Version: V 1.4.1
+### Current Version: V 2.0.1
 ## Documentation: 
 ### [How to use?](https://green-screen.github.io/SecureClasses)
 
 ## What is Secure Classes?
-Secure Classes is a metatable and userdata class wrapper ment to properly wrap all objects to properly protect them
+Secure Classes is a metatable wrapper ment to properly wrap all objects to properly protect them
 and maintain a clean and consice structure that is up to modern standards
 
 ## Warnings
@@ -20,16 +20,14 @@ and maintain a clean and consice structure that is up to modern standards
 -   Statically typed
 -   Type solver support
 -   Built in destroy function and options to assign custom ones
--   new metamethod __destroy
--   Built in support for `private` `protected` and `unprotected` table properties
+-   new metamethod __destroy & __typeKey
+-   Built in support for `private`, `protected`, `default` and `unprotected` table properties
 -   Secure objects and classes that are still easy to interact with
 
 ### **Changelog:**
 
--   Initial
--   Support for Metatables and Userdata
--   Documentation created with `Moonwave`
--   Added Index Syntax based on the amount of leading underscores
--   Added smart type function for better linted metatable types
+-   Support for userdatas removed
+-   Refactored package logic
+-   Better tutorial documentation
 
 **_This module is still in testing and is not yet ready for production usage_**
