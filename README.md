@@ -4,8 +4,7 @@
 ### [How to use?](https://green-screen.github.io/SecureClasses)
 
 ## What is Secure Classes?
-Secure Classes is a metatable wrapper ment to properly wrap all objects to properly protect them
-and maintain a clean and consice structure that is up to modern standards
+Secure Classes is a metatable wrapper ment to wrap all objects and properly protect. While maintaining a clean and concise structure that is up to modern standards.
 
 ## Warnings
 ### **Make sure you set UseNewLuauTypeSolver to enabled in workspace properties to get proper intellisense**

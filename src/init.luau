@@ -316,10 +316,10 @@ end
 	A lightweight metatable wrapper built for security and maintain proper code edicate among custom user objects and instances with built in protections and helpful features while still providing the full raw [metatable](https://create.roblox.com/docs/luau/metatables) api.
 	| Syntax | Result |
 	| ---- | ------- |
-	| RegularProperty | Denotes a `Standered` property **_Anything else_**.  This is the default property that is read-only  |
-	| _PrivateProperty | Denotes a `Private` property **_1 Underscore_** that cannot be indexed normally `Object[Index]`. Must be manipulated with a special syntax see [#page:](/docs/Examples#2-creating-a-metadata-table) |
-	| __Metamethod | Denotes a `Metamethod` **_2 Underscores_**.  NOTE that some metamethods are assigned within the secured class and cannot be changed. IE: *__index*, *__newindex*, *__metatable* |
-	| ___UnprotectedProperty | Denotes a `Free` property **_3 Underscores_**.  This property will have **NO** read or write protections |
+	| RegularProperty | Denotes a `Standard/Default` property **_Anything that doesn't classify as something below_**.  This is the default property that is read-only and must be manipulated with a special syntax see [#page:](/docs/Examples#2-creating-a-metadata-table)  |
+	| _PrivateProperty | Denotes a `Private/Protected` property **_1 Underscore_** that cannot be indexed normally `Object[Index]`. Must be manipulated with a special syntax see [#page:](/docs/Examples#2-creating-a-metadata-table) |
+	| __Metamethod | Denotes a `Metamethod` **_2 Underscores_**.  NOTE that some metamethods are assigned within the secured class and cannot be changed. IE: *__index*, *__newindex*, *__metatable*, These are static and cannot be changed |
+	| ___UnprotectedProperty | Denotes a `Free/Unprotected` property **_3 Underscores_**.  This property will have **NO** read or write protections. This is manipulable with regular table syntax |
 
 	### Syntax Example
 	```lua
@@ -439,6 +439,9 @@ end
 	@return WrappedMetatable -- A special securely wrapped metatable
 
 	Creates a new Wrapped Metatable object
+	:::info Function
+	SecuredClasses returns a function that is called to create a WrappedMetatable class **NOT** a dictionary 
+	:::
 
 	```lua
 		local T = {
@@ -464,7 +467,7 @@ end
 			end
 		}
 		
-		local SecuredClass = SecuredClasses.NewMetatable(T, MT, "SecuredClass", MM)
+		local SecuredClass = SecuredClasses(T, MT, "SecuredClass", MM)
 
 		SecuredClass:GetPrivateData() -- 10
 
@@ -472,7 +475,7 @@ end
 	```
 
 	:::tip Type union
-	Due to the nature of `generics` and the current state of `type functions` try and keep metamethods out of the Metatable or Table "_Leaving them in will not break anything as they are sorted into their correct categories_". As this can cause the type union to include non accessible type objects. And due to the experimental state of `type functions` there isnt a way to programmatically remove them.
+	Due to the nature of `generics` and the current state of `type functions` try and keep metamethods out of the Metatable or Table "_Leaving them in will not break anything as they are sorted into their correct categories_". As this can cause the type union to include non accessible type objects. And due to the experimental state of `type functions` there isnt a way to programmatically remove them without breaking something else.
 	:::
 ]=]
 
@@ -490,7 +493,7 @@ end
 	```lua
 		-- Inherits properties from above
 
-		local SecuredClass = SecuredClasses.NewMetatable(T, MT, "SecuredClass", MM)
+		local SecuredClass = SecuredClasses(T, MT, "SecuredClass", MM)
 
 		SecuredClass:GetPrivateData() -- 10
 

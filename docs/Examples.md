@@ -40,8 +40,8 @@ local Player = {
 	This will clear any type errors due to the Property of __typeKey not being apart of the type union
 
 	__typeKey cannot be indexed:
-	Due to security you should have your __typeKey cannot be indexed via: self[self.__typeKey]
-	You must have a constant assigned to __typeKey and the index used to access the __Metatable 
+	Due to security your __typeKey cannot be indexed via: self[self.__typeKey]
+	You must have a constant assigned to __typeKey and the index used to access the Metatable 
 	object that holds the only reference to the private read-Only data {Protected, and Default objects}
 
 	DO NOT INVOKE RAW FUNCTIONS:
@@ -135,7 +135,7 @@ Some metamethods are auto assigned and cannot be overwritten or read when creati
 -- Having strict enabled will allow the type solver to lint your metamethod table more accuratly
 local SecureClasses = require("Path to SecureClasses Module")
 
-local SecuredClass = SecureClasses.NewMetatable(Player, PlayerMetadata, "Player", Playermetamethods)
+local SecuredClass = SecureClasses(Player, PlayerMetadata, "Player", Playermetamethods)
 
 print(SecuredClass) -- Returns __tostring Compile
 
@@ -163,7 +163,7 @@ By default there are 2 write protections that protect against writes even from r
 -- Having strict enabled will allow the type solver to lint your metamethod table more accuratly
 local SecureClasses = require("Path to SecureClasses Module")
 
-local SecuredClass = SecureClasses.NewMetatable(Player, PlayerMetadata, "Player", Playermetamethods)
+local SecuredClass = SecureClasses(Player, PlayerMetadata, "Player", Playermetamethods)
 
 -- Error
 SecuredClass.__index = nil -- table is read only
