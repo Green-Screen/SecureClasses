@@ -1,3 +1,7 @@
+---
+sidebar_position: 3
+---
+
 # WorkFlows
 :::caution
 When writing metamethods that interact with the main class be sure to follow the class [writing style](#example):

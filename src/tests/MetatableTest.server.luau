@@ -86,4 +86,4 @@ Class:Destroy() -- nil
 print(Class, getmetatable(Class)) -- {}, Nil
 
 -- Error
-Class:GetID() -- Attempt to index nil with GetID
+--Class:GetID() -- Attempt to index nil with GetID

@@ -1,4 +1,4 @@
--- SecureClasses V 2.0.1
+-- SecureClasses V 2.1.3
 -- @Patriots8800
 
 --!strict
@@ -7,11 +7,11 @@
 ----------------------------------------------------------------------------------------------
 
 -- 							[[ Dependencies ]]
-local EasyType = require("./SecureClasses/Dependencies/EasyType")
+local EasyType = require("@self/Dependencies/EasyType")
 
 ----------------------------------------------------------------------------------------------
 
--- 							[[ Service Header ]]
+-- 							[[ Service Header ]]P
 
 -- Secure Classes is a Metatable and Userdata wrapper object ment to bring security and ease of use to all objects
 local SERVICE_NAME = "[SecureClasses]:"
@@ -139,6 +139,7 @@ local function ConcatTables(T1: { any }, T2: { any })
 	for k, v in T2 do
 		T1[k] = v
 	end
+	table.clear(T2)
 	return T1
 end
 
@@ -162,13 +163,21 @@ local function CreateSecureClass<T, MT, MM>(T: T, MT: MT, MM: MetaMethods<T & MT
 	})
 
 	local function NestedClose(...)
-		if (MM :: any).__destroy then
-			(MM.__destroy :: any)(...)
-		end
 		setmetatable(MT, nil)
+
+		if (MM :: any).__destroy then
+			(MM :: any).__newindex = nil
+			-- Allows table to be written to
+			ConcatTables(T, MT :: any);
+			-- Moves Metatable into Table "__metadata"
+			(MM.__destroy :: any)(...)
+			-- Runs user assigned destroy on T & MT "__metadata"
+		end
 		SmartClose(MM :: any, true)
+		-- Recursivly clears MM & T
 
 		return SmartClose(...) :: any
+		-- Clears T recursivly
 	end
 
 	(MM :: any)["__index"] = function(self: { [any]: any }, index: any)
@@ -507,12 +516,16 @@ end
 	```
 
 	:::info Auto clean-up
-	`Destroy` contains a auto destroy function that can correctly clean up all basic `ROBLOX` objects and instances. `Nuke` is
-	used when you want to destroy `instances` left `false` it will only delete the reference to the instance.
+	`Destroy` contains a recursive cleaning function that is able to properly disable and deallocate all basic `ROBLOX` objects. The `Nuke` parameter is used when you want to call `:Destroy` on an instance *ie: destroying a `Basepart` or `Model`*. **OR** If you have a function binded to `__destroy` you can pass this optional boolean + more if applicable.
 	:::
 
 	:::tip __destroy
-	The custom metamethod `__destroy` is a metamethod you can assign that will run before the auto destroy function so you can
-	clean up custom complex objects. Note this DOES NOT prevent the auto destroy function from running only it runs `__destroy` before `SmartClean ":Destroy"`
+	The custom metamethod `__destroy` is a metamethod you can assign that will run **BEFORE** the auto clean-up. It is recommended to only use this metamethod to clean **non default `ROBLOX` objects** such as: `Signals`, `Controllers`, or `user-Created classes` then **remove** the index from the table. If you have a property that is a `ROBLOX` object such as: `instances`, `threads`, or `RBXScriptConnections` let the auto clean-up remove them instead.
 	:::
+
+	:::danger Irreversible
+	Once `:Destroy()` is called this action cannot be undone and the metatable will be completely deallocated calling `print(CLASS, getmetatable(CLASS))` will return `{ }, nil`
+	:::
+
+	@since V 2.1.1
 ]=]
