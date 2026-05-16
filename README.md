@@ -29,6 +29,8 @@ Secure Classes is a metatable wrapper ment to wrap all objects and properly prot
 -   Refactored package logic
 -   Better tutorial documentation
 -   Support for better type inferencing (waiting for better type functions)
--   
+
+### **Projects In Use:**
+-   [Ecosystem](https://github.com/Green-Screen/Ecosystem)
 
 **_This module is still in testing and is not yet ready for production usage_**
