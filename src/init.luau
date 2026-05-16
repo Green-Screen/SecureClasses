@@ -1,26 +1,33 @@
--- SecureClasses V 2.1.3
+-- SecureClasses V 2.2.1
 -- @Patriots8800
 
 --!strict
+
 -- Documentation: https://green-screen.github.io/SecureClasses
 
 ----------------------------------------------------------------------------------------------
 
 -- 							[[ Dependencies ]]
 local EasyType = require("@self/Dependencies/EasyType")
+local RunService = game:GetService("RunService")
 
 ----------------------------------------------------------------------------------------------
 
--- 							[[ Service Header ]]P
+-- 							[[ Service Header ]]
 
 -- Secure Classes is a Metatable and Userdata wrapper object ment to bring security and ease of use to all objects
 local SERVICE_NAME = "[SecureClasses]:"
+
+-- Enable debug mode only available in studio. This will allow you to print your classes to easily debug them.
+local EnableDebugClasses = false
 
 ----------------------------------------------------------------------------------------------
 
 -- 							[[ Private functions (helpers) ]]
 
 local UnderscoreASCII = string.byte("_") -- = 95
+
+local DebugEnabled = EnableDebugClasses and RunService:IsStudio()
 
 local MetamethodStatuses = {
 	["__index"] = false, -- Not writtable
@@ -100,6 +107,7 @@ end
 -- To properly clean complex custom objects assign __destroy a function to be called at the beginning of the destroy cycle.
 
 local function SmartClose(self: { [any]: any }, Nuke: boolean)
+	--warn(self)
 	for i, v in self do
 		local vType = EasyType(v)
 		local iType = EasyType(i)
@@ -127,19 +135,20 @@ local function SmartClose(self: { [any]: any }, Nuke: boolean)
 		self[i] = nil
 	end
 
-	table.clear(self)
 	if EasyType(getmetatable(self) == "table") then
 		setmetatable(self, nil)
 	end
-	self = nil :: never
+
 	return nil
 end
 
-local function ConcatTables(T1: { any }, T2: { any })
+local function ConcatTables(T1: { any }, T2: { any }, DestroyT2:boolean?)
 	for k, v in T2 do
 		T1[k] = v
+		if DestroyT2 then
+			T2[k] = nil
+		end
 	end
-	table.clear(T2)
 	return T1
 end
 
@@ -156,6 +165,10 @@ local function CreateSecureClass<T, MT, MM>(T: T, MT: MT, MM: MetaMethods<T & MT
 	-- The base class is stored inside of SecureMetamethods
 	--ConcatTables(SecureMetamethods, MM::any)
 
+	-- True if the class has not been destroyed yet.
+	-- Once destroyed trying to index will return nil
+	(MT::any).Operatable = true
+
 	MT = setmetatable(MT, {
 		__newindex = function()
 			return error(string.format("%s Metadata table cannot be assigned new keys", SERVICE_NAME), 10)
@@ -168,7 +181,7 @@ local function CreateSecureClass<T, MT, MM>(T: T, MT: MT, MM: MetaMethods<T & MT
 		if (MM :: any).__destroy then
 			(MM :: any).__newindex = nil
 			-- Allows table to be written to
-			ConcatTables(T, MT :: any);
+			ConcatTables(T, MT :: any, true);
 			-- Moves Metatable into Table "__metadata"
 			(MM.__destroy :: any)(...)
 			-- Runs user assigned destroy on T & MT "__metadata"
@@ -212,6 +225,11 @@ local function CreateSecureClass<T, MT, MM>(T: T, MT: MT, MM: MetaMethods<T & MT
 	-- Creates protected metadata holder
 
 	(MM :: any)["__metadata"] = MT
+
+	if DebugEnabled then
+		(MM :: any).__metatable = nil
+		MM.__tostring = nil
+	end
 
 	return setmetatable(T, MM)
 end
@@ -263,6 +281,7 @@ export type MetaMethods<T> = {
 
 export type WrappedMetatable<T> = T & {
 	Destroy: (self: WrappedMetatable<T>, Nuke: boolean?) -> nil,
+	Operatable: true?, 
 }
 
 -- Shits just broken
@@ -452,6 +471,13 @@ end
 	SecuredClasses returns a function that is called to create a WrappedMetatable class **NOT** a dictionary 
 	:::
 
+	:::tip Type union
+	Due to the nature of `generics` and the current state of `type functions` try and keep metamethods out of the Metatable or Table "_Leaving them in will not break anything as they are sorted into their correct categories_". As this can cause the type union to include non accessible type objects. And due to the experimental state of `type functions` there isnt a way to programmatically remove them without breaking something else.
+	:::
+
+	-------
+	### Example:
+
 	```lua
 		local T = {
 			ClassName = "SecuredClass"
@@ -482,10 +508,6 @@ end
 
 		print(SecuredClass._PrivateData) -- Nil & Warn
 	```
-
-	:::tip Type union
-	Due to the nature of `generics` and the current state of `type functions` try and keep metamethods out of the Metatable or Table "_Leaving them in will not break anything as they are sorted into their correct categories_". As this can cause the type union to include non accessible type objects. And due to the experimental state of `type functions` there isnt a way to programmatically remove them without breaking something else.
-	:::
 ]=]
 
 --[=[
@@ -498,6 +520,20 @@ end
 	@return nil
 
 	The only way to destroy the metatable when flags are assigned
+
+	:::info Auto clean-up
+	`Destroy` contains a recursive cleaning function that is able to properly disable and deallocate all basic `ROBLOX` objects. The `Nuke` parameter is used when you want to call `:Destroy` on an instance *ie: destroying a `Basepart` or `Model`*. **OR** If you have a function binded to `__destroy` you can pass this optional boolean + more if applicable.
+	:::
+
+	:::tip __destroy
+	The custom metamethod `__destroy` is a metamethod you can assign that will run **BEFORE** the auto clean-up. It is recommended to only use this metamethod to clean **non default `ROBLOX` objects** such as: `Signals`, `Controllers`, or `user-Created classes` then **remove** the index from the table. If you have a property that is a `ROBLOX` object such as: `instances`, `threads`, or `RBXScriptConnections` let the auto clean-up remove them instead.
+	:::
+
+	:::danger Irreversible
+	Once `:Destroy()` is called this action cannot be undone and the metatable will be completely deallocated calling `print(CLASS, getmetatable(CLASS))` will return `{ }, nil`
+	:::
+	-------
+	### Example:
 
 	```lua
 		-- Inherits properties from above
@@ -515,17 +551,19 @@ end
 		SecuredClass:GetPrivateData() -- Attempt to index nil with GetPrivateData
 	```
 
-	:::info Auto clean-up
-	`Destroy` contains a recursive cleaning function that is able to properly disable and deallocate all basic `ROBLOX` objects. The `Nuke` parameter is used when you want to call `:Destroy` on an instance *ie: destroying a `Basepart` or `Model`*. **OR** If you have a function binded to `__destroy` you can pass this optional boolean + more if applicable.
-	:::
-
-	:::tip __destroy
-	The custom metamethod `__destroy` is a metamethod you can assign that will run **BEFORE** the auto clean-up. It is recommended to only use this metamethod to clean **non default `ROBLOX` objects** such as: `Signals`, `Controllers`, or `user-Created classes` then **remove** the index from the table. If you have a property that is a `ROBLOX` object such as: `instances`, `threads`, or `RBXScriptConnections` let the auto clean-up remove them instead.
-	:::
-
-	:::danger Irreversible
-	Once `:Destroy()` is called this action cannot be undone and the metatable will be completely deallocated calling `print(CLASS, getmetatable(CLASS))` will return `{ }, nil`
-	:::
-
 	@since V 2.1.1
+]=]
+
+--[=[
+	@within SecuredMetatable
+	@prop Opertable true?
+	@readonly
+	@since V 2.2.0
+
+	A boolean or null value to check if the object has been destroyed
+
+	:::caution Destroy
+	Due to the nature of `:Destroy()` this value will be nil and **NOT** false. The only 2 possible values are `true` and `nil`. This property is strictly read-only
+	:::
+
 ]=]
