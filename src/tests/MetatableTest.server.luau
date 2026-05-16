@@ -81,7 +81,11 @@ print(Class, getmetatable(Class)) -- Tostring Result, Test
 
 print(EasyType(Class)) -- table
 
+print(Class.Operatable) -- true
+
 Class:Destroy() -- nil
+
+print(Class.Operatable) -- nil
 
 print(Class, getmetatable(Class)) -- {}, Nil
 

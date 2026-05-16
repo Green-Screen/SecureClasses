@@ -11,6 +11,18 @@ Anything documented with **RELEASED** is a downloadable version from [releases](
 
 --------------------------------------------------------------------------------------------------
 
+## V: [2.2.1] - 05-15-2026
+### **RELEASED**
+
+### Changes:
+-   Documentation updates to reflect new API: `Opertable` & Debug mode
+
+### Added:
+-   New property `Opertable` used to signify if the object has been destroyed
+-   Debug mode during `studio runtime` 
+
+--------------------------------------------------------------------------------------------------
+
 ## V: [2.1.3] - 05-08-2026
 ### **RELEASED**
 
