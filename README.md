@@ -1,7 +1,7 @@
 # SecureClasses
 ### Current Version: V 2.2.1
-## Documentation: 
-### [How to use?](https://green-screen.github.io/SecureClasses)
+
+## [**Documentation**](https://green-screen.github.io/SecureClasses/)
 
 ## What is Secure Classes?
 Secure Classes is a metatable wrapper ment to wrap all objects and properly protect. While maintaining a clean and concise structure that is up to modern standards.
