@@ -1,5 +1,7 @@
 changelog = true
 gitSourceBranch = "main"
+version = "2.2.1"
+title = "SecureClasses"
 
 [docusaurus]
 tagline = "A metatable wrapper built for embeddability and security"
