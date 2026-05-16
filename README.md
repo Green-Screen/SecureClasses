@@ -1,5 +1,5 @@
 # SecureClasses
-### Current Version: V 2.1.3
+### Current Version: V 2.2.1
 ## Documentation: 
 ### [How to use?](https://green-screen.github.io/SecureClasses)
 
